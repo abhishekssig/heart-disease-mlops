@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+venv
+mlruns
+mlartifacts
+data
+reports
+report
+screenshots
+notebooks
+tests
+k8s
+monitoring
+**/__pycache__

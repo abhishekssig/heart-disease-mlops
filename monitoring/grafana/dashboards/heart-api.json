@@ -1,0 +1,85 @@
+{
+  "title": "Heart Disease API",
+  "uid": "heart-api",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {"from": "now-30m", "to": "now"},
+  "tags": ["mlops", "heart"],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Model loaded",
+      "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "min(heart_api_model_loaded)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "NO", "color": "red"}, "1": {"text": "YES", "color": "green"}}}]}, "overrides": []}
+    },
+    {
+      "type": "stat",
+      "title": "Total predictions",
+      "gridPos": {"x": 4, "y": 0, "w": 5, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(heart_api_predictions_total)", "refId": "A"}]
+    },
+    {
+      "type": "stat",
+      "title": "Disease rate (predicted)",
+      "gridPos": {"x": 9, "y": 0, "w": 5, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(heart_api_predictions_total{label=\"Heart disease\"}) / sum(heart_api_predictions_total)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []}
+    },
+    {
+      "type": "stat",
+      "title": "Mean confidence",
+      "gridPos": {"x": 14, "y": 0, "w": 5, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(heart_api_prediction_confidence_sum) / sum(heart_api_prediction_confidence_count)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "decimals": 1}, "overrides": []}
+    },
+    {
+      "type": "stat",
+      "title": "Error rate (5m)",
+      "gridPos": {"x": 19, "y": 0, "w": 5, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(heart_api_requests_total{status=~\"4..|5..\"}[5m])) / clamp_min(sum(rate(heart_api_requests_total[5m])), 1e-9)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 0.05}, {"color": "red", "value": 0.2}]}}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests per second by endpoint",
+      "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (endpoint, status) (rate(heart_api_requests_total[1m]))", "legendFormat": "{{endpoint}} {{status}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p50 / p95 / p99",
+      "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum by (le) (rate(heart_api_request_latency_seconds_bucket{endpoint=~\"/predict.*\"}[5m])))", "legendFormat": "p50", "refId": "A"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(heart_api_request_latency_seconds_bucket{endpoint=~\"/predict.*\"}[5m])))", "legendFormat": "p95", "refId": "B"},
+        {"expr": "histogram_quantile(0.99, sum by (le) (rate(heart_api_request_latency_seconds_bucket{endpoint=~\"/predict.*\"}[5m])))", "legendFormat": "p99", "refId": "C"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Predictions per minute by class",
+      "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (label) (increase(heart_api_predictions_total[1m]))", "legendFormat": "{{label}}", "refId": "A"}]
+    },
+    {
+      "type": "bargauge",
+      "title": "Predicted disease probability distribution",
+      "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (le) (heart_api_disease_probability_bucket)", "legendFormat": "<= {{le}}", "format": "heatmap", "refId": "A"}],
+      "options": {"orientation": "vertical", "displayMode": "gradient"}
+    }
+  ]
+}
